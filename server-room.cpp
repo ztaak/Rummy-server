@@ -24,6 +24,7 @@ std::future<int> connection1;
 
 
 int handle_new_connection(int client_fd, int connection_pos){
+	printf("Connection redirected.\n");
 	num_connections++;	
 	connection_status[connection_pos] = true;
 
