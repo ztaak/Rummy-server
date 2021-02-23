@@ -9,6 +9,7 @@
 #include <string.h> 
 #include <arpa/inet.h>
 
+#include <algorithm>
 #include <future>
 #include <deque>
 
@@ -33,8 +34,12 @@ int handle_new_connection(int client_fd, int connection_pos){
 	char buffer[256];
 	memset(&buffer, 0, sizeof(char) * 256);
 	read(client_fd, buffer, 255);
+
+	std::string buf = std::string(buffer);
+	buf.erase(std::remove(buf.begin(), buf.end(), '\n'), buf.end());
+	buf.erase(std::remove(buf.begin(), buf.end(), '\r'), buf.end());
 		
-	if(std::string(buffer) == "GETN"){	
+	if(buf == "GETN" || std::string(buffer) == "\r\n"){	
 		send(client_fd, user_names[0].c_str(), user_names[0].size(), 0);
 		send(client_fd, user_names[1].c_str(), user_names[1].size(), 0);
 		close(client_fd);	
@@ -46,8 +51,8 @@ int handle_new_connection(int client_fd, int connection_pos){
 	
 	user_names[connection_pos] = "EMPT";
 
-	printf("User: '%s' connected!\n", buffer);
-	user_names[connection_pos] = std::string(buffer);
+	printf("User: '%s' connected!\n", buf.c_str());
+	user_names[connection_pos] = buf;
 
 	for(;;){
 		memset(&buffer, 0, sizeof(char) * 256);
@@ -55,10 +60,15 @@ int handle_new_connection(int client_fd, int connection_pos){
 		if(eof == 0)
 			break;
 	
+
+		buf = std::string(buffer);
+		buf.erase(std::remove(buf.begin(), buf.end(), '\n'), buf.end());
+		buf.erase(std::remove(buf.begin(), buf.end(), '\r'), buf.end());
+
 		if(std::string(buffer) == "\r\n")
 			continue;
 	
-		if(std::string(buffer) == "CHCK"){
+		if(buf == "CHCK"){
 			std::string msg;
 			if(connection_msg_box[connection_pos].size() <= 0)
 				msg = "EMPT";
@@ -69,11 +79,11 @@ int handle_new_connection(int client_fd, int connection_pos){
 			send(client_fd, msg.c_str(), msg.size(), 0);
 		}
 		else{
-			printf("Adding new message from connectin: '%i', msg: '%s'\n", connection_pos, buffer);	
+			printf("Adding new message from connectin: '%i', msg: '%s'\n", connection_pos, buf.c_str());	
 			if(connection_pos == 0)
-				connection_msg_box[1].push_back(std::string(buffer));
+				connection_msg_box[1].push_back(buf);
 			else if (connection_pos == 1)
-				connection_msg_box[0].push_back(std::string(buffer));
+				connection_msg_box[0].push_back(buf);
 
 		}
 	}
